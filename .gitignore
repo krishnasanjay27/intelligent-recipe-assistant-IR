@@ -8,7 +8,7 @@ data/processed/*.csv
 
 # Ignore sample CSVs EXCEPT sample_5000.csv
 data/sample/*.csv
-!data/sample/sample_5000.csv
+# !data/sample/sample_5000.csv
 
 # Ignore large files
 *.pkl
