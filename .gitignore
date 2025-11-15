@@ -1,0 +1,12 @@
+# Ignore raw dataset files
+data/raw/
+*.csv
+*.pkl
+*.zip
+
+# Ignore intermediary processed data
+data/processed/
+data/sample/*.csv
+
+# Ignore virtual environment
+venv/
