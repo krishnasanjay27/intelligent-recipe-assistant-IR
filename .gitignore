@@ -1,12 +1,22 @@
-# Ignore raw dataset files
+# Ignore raw datasets (large)
 data/raw/
-*.csv
+data/processed/
+
+# Ignore all CSVs inside data/raw or data/processed
+data/raw/*.csv
+data/processed/*.csv
+
+# Ignore sample CSVs EXCEPT sample_5000.csv
+data/sample/*.csv
+!data/sample/sample_5000.csv
+
+# Ignore large files
 *.pkl
 *.zip
 
-# Ignore intermediary processed data
-data/processed/
-data/sample/*.csv
+# Python cache
+__pycache__/
+*.pyc
 
-# Ignore virtual environment
+# Virtual environment
 venv/
