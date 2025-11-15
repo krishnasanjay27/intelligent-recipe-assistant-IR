@@ -1,22 +1,41 @@
-# Ignore raw datasets (large)
+# ============================
+# IGNORE RAW + PROCESSED DATA
+# ============================
+
+# Ignore raw folder completely
 data/raw/
-data/processed/
 
-# Ignore all CSVs inside data/raw or data/processed
-data/raw/*.csv
-data/processed/*.csv
+# Ignore processed folder BUT allow the folder itself for exceptions
+!data/processed/
+data/processed/*
 
-# Ignore sample CSVs EXCEPT sample_5000.csv
-data/sample/*.csv
-# !data/sample/sample_5000.csv
+# Allow preprocessed_5000.csv to be tracked even though folder ignored
+!data/processed/preprocessed_5000.csv
 
-# Ignore large files
+# ============================
+# IGNORE SAMPLE DATA
+# ============================
+
+data/sample/*
+!data/sample/sample_5000.csv   # only if you want to include it (optional)
+
+# ============================
+# IGNORE LARGE FILE TYPES
+# ============================
+
 *.pkl
 *.zip
 
-# Python cache
+# ============================
+# PYTHON ARTIFACTS
+# ============================
+
 __pycache__/
 *.pyc
 
-# Virtual environment
+# ============================
+# VIRTUAL ENVIRONMENTS
+# ============================
+
 venv/
+env/
