@@ -1,0 +1,124 @@
+/* General Page Layout */
+.App {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  max-width: 1100px;
+  margin: auto;
+}
+
+/* Search Bar */
+.search-container {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.search-container h1 {
+  margin-bottom: 20px;
+}
+
+.query-input {
+  width: 80%;
+  padding: 12px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+/* Controls Row */
+.controls-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.controls-row select,
+.controls-row input[type="range"] {
+  padding: 8px;
+}
+
+/* Search Button */
+.search-btn {
+  padding: 12px 20px;
+  background-color: #007bff;
+  border: none;
+  color: white;
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.search-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Recipe Card Grid */
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* Recipe Card */
+.recipe-card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 18px;
+  border: 1px solid #eee;
+  box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
+}
+
+.recipe-card h2 {
+  margin-bottom: 10px;
+  font-size: 20px;
+}
+
+.recipe-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: grey;
+}
+
+.recipe-sections h3 {
+  margin-top: 10px;
+  margin-bottom: 8px;
+}
+
+.recipe-description {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+/* Tags */
+.recipe-tags {
+  margin-top: 10px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 4px 8px;
+  background-color: #eee;
+  border-radius: 5px;
+  margin-right: 5px;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  margin: 20px auto;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #007bff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
