@@ -157,11 +157,17 @@ def preprocess_dataframe(df):
     - ingredients_tokens
     - steps_tokens
     - search_text
+    Also keeps ORIGINAL fields for UI display:
+    - description
+    - ingredients
+    - steps
     """
 
     processed_rows = []
 
     for _, row in df.iterrows():
+
+        # Processed (for IR)
         ing_tokens = preprocess_ingredients(row["ingredients"])
         step_tokens = preprocess_steps(row["steps"])
 
@@ -171,11 +177,19 @@ def preprocess_dataframe(df):
             step_tokens
         )
 
+        # Store both PROCESSED + ORIGINAL DATA
         processed_rows.append({
             "id": row["id"],
             "name": row["name"],
             "minutes": row["minutes"],
             "tags": row["tags"],
+
+            # Original text (UI display)
+            "description": row.get("description", ""),
+            "ingredients": row["ingredients"],     # string list
+            "steps": row["steps"],                 # string list
+
+            # Processed text (IR)
             "ingredients_tokens": ing_tokens,
             "steps_tokens": step_tokens,
             "search_text": search_text
