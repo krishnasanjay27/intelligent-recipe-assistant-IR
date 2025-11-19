@@ -30,7 +30,7 @@ app.add_middleware(
 # Load preprocessed dataset
 # ---------------------------
 print("Loading dataset...")
-df = pd.read_csv("../data/processed/preprocessed_10000.csv")
+df = pd.read_csv("../data/preprocessed_10000.csv")
 
 # Convert token columns from string to Python list
 df["ingredients_tokens"] = df["ingredients_tokens"].apply(eval)

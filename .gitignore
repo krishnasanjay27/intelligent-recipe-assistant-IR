@@ -1,7 +1,7 @@
 # ============================
 # IGNORE RAW + PROCESSED DATA
 # ============================
-
+data/*
 # Ignore raw folder completely
 data/raw/
 
@@ -10,14 +10,14 @@ data/raw/
 data/processed/*
 
 # Allow preprocessed_5000.csv to be tracked even though folder ignored
-!data/processed/preprocessed_10000.csv
+# !data/processed/preprocessed_10000.csv
 
 # ============================
 # IGNORE SAMPLE DATA
 # ============================
 
 data/sample/*
-!data/sample/sample_10000.csv   # only if you want to include it (optional)
+# !data/sample/sample_10000.csv   # only if you want to include it (optional)
 
 # ============================
 # IGNORE LARGE FILE TYPES
