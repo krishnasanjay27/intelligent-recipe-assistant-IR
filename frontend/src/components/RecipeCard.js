@@ -55,15 +55,6 @@ export default function RecipeCard({ recipe }) {
           </ol>
         </div>
       </div>
-
-      <div className="recipe-tags">
-        {(typeof recipe.tags === 'string'
-          ? recipe.tags.split(',').map(t => t.trim())
-          : recipe.tags || []
-        ).map(tag => (
-          <span key={tag}>{tag}</span>
-        ))}
-      </div>
     </div>
   );
 }

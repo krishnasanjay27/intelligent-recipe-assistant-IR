@@ -7,7 +7,7 @@
    - Wait for all installations to complete
 
 2. **Download dataset:**
-   - Download data from [(https://drive.google.com/file/d/1nv2Jxh8kjBUVc4Z9z59X2ymw5SDXd_AH/view?usp=sharing)]
+   - Download data from [https://drive.google.com/file/d/1M74qCt0Kq566XsdwCfboARwEmIJCXrEY/view?usp=sharing]
    - Place in `data/` folder
 
 3. **Start the application:**
