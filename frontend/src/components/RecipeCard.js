@@ -9,6 +9,7 @@ function parseListString(s) {
     const fixed = s.replace(/'/g, '"');
     return JSON.parse(fixed);
   } catch {
+    // Fallback for simple comma-separated string that may have brackets/quotes
     return s.replace(/[\[\]']+/g, "").split(",").map((item) => item.trim()).filter(Boolean);
   }
 }
@@ -18,6 +19,12 @@ export default function RecipeCard({ recipe }) {
   const ingredients = parseListString(recipe.ingredients);
   const steps = parseListString(recipe.steps);
 
+  // Robust score calculation: 
+  // 1. Convert score to a number.
+  // 2. Default to 0 if null/undefined, or keep the number.
+  // 3. Display N/A only if the recipe object itself is missing a score field.
+  const scoreValue = typeof recipe.score === 'number' ? recipe.score : (recipe.score === undefined ? null : 0);
+
   return (
     <div className={`bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-stone-100 overflow-hidden flex flex-col ${expanded ? 'row-span-2' : ''}`}>
       
@@ -26,7 +33,12 @@ export default function RecipeCard({ recipe }) {
         <div className="flex justify-between items-start mb-2">
           <div className="flex items-center gap-2 text-amber-500 text-sm font-medium">
             <Star size={14} fill="currentColor" />
-            <span>{recipe.score ? recipe.score.toFixed(1) : "N/A"}</span>
+            {/* UPDATED: Display score as 0.0 if calculated as 0, or N/A if missing */}
+            <span>
+              {scoreValue === null
+                ? "N/A"
+                : scoreValue.toFixed(2)} {/* Displaying two decimal places for better score visibility */}
+            </span>
           </div>
           <div className="flex items-center gap-1 text-stone-400 text-xs uppercase tracking-wider">
             <Clock size={14} />
@@ -58,7 +70,8 @@ export default function RecipeCard({ recipe }) {
 
       {/* Expanded Content */}
       <div className={`bg-stone-50 transition-all duration-500 ease-in-out overflow-hidden ${expanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className="p-6 pt-2 space-y-6 border-t border-stone-200/50">
+        {/* Scrollable Container Added: max-h-[700px] overflow-y-auto */}
+        <div className="p-6 pt-2 space-y-6 border-t border-stone-200/50 max-h-[700px] overflow-y-auto">
           <div>
             <h3 className="font-serif text-lg text-stone-800 mb-3 flex items-center gap-2">
               <Leaf size={16} className="text-green-600" /> Ingredients

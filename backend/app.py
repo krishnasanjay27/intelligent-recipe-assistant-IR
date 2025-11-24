@@ -64,31 +64,40 @@ class SearchQuery(BaseModel):
 # ---------------------------
 @app.post("/search")
 def search_recipes(data: SearchQuery):
+    try:
+        cleaned = basic_clean(data.query)
+        tokens = tokenize(cleaned)
+        tokens = remove_stopwords(tokens)
+        query_tokens = lemmatize(tokens)
 
-    cleaned = basic_clean(data.query)
-    tokens = tokenize(cleaned)
-    tokens = remove_stopwords(tokens)
-    query_tokens = lemmatize(tokens)
+        results = search_engine.search(
+            query=data.query,
+            query_tokens=query_tokens,
+            top_k=data.top_k,
+            diet=data.diet,
+            cuisine=data.cuisine,
+            max_time=data.max_time
+        )
 
-    results = search_engine.search(
-        query=data.query,
-        query_tokens=query_tokens,
-        top_k=data.top_k,
-        diet=data.diet,
-        cuisine=data.cuisine,
-        max_time=data.max_time
-    )
+        output = []
+        for _, row in results.iterrows():
+            score = float(row["final_score"])
+            if score != score: # Check for NaN
+                score = 0.0
+            
+            output.append({
+                "name": row["name"],
+                "minutes": int(row["minutes"]),
+                "tags": row["tags"],
+                "score": score,
+                "ingredients": row["ingredients"],
+                "steps": row["steps"],
+                "description": str(row.get("description", ""))
+            })
 
-    output = []
-    for _, row in results.iterrows():
-        output.append({
-            "name": row["name"],
-            "minutes": int(row["minutes"]),
-            "tags": row["tags"],
-            "score": float(row["final_score"]),
-            "ingredients": row["ingredients"],
-            "steps": row["steps"],
-            "description": row.get("description", "")
-        })
-
-    return {"results": output}
+        return {"results": output}
+    except Exception as e:
+        import traceback
+        print(f"Error processing request: {e}")
+        traceback.print_exc()
+        return {"results": []}

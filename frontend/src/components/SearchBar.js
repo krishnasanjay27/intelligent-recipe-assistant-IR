@@ -2,16 +2,16 @@ import React, { useState } from "react";
 import axios from "axios";
 import { Search, Loader2, ChevronDown } from "lucide-react";
 
-export default function SearchBar({ setResults, loading, setLoading, setHasSearched }) {
+export default function SearchBar({ setResults, setLoading, setHasSearched }) {
   const [query, setQuery] = useState("");
   const [diet, setDiet] = useState([]);
   const [cuisine, setCuisine] = useState("");
   const [maxTime, setMaxTime] = useState(60);
 
   const toggleDiet = (option) => {
-    setDiet((prev) =>
-      prev.includes(option)
-        ? prev.filter((item) => item !== option)
+    setDiet(prev => 
+      prev.includes(option) 
+        ? prev.filter(item => item !== option)
         : [...prev, option]
     );
   };
@@ -20,22 +20,32 @@ export default function SearchBar({ setResults, loading, setLoading, setHasSearc
     e.preventDefault();
     setLoading(true);
     setHasSearched(true);
-    setResults([]);
+    setResults([]); // Clear previous results
 
     try {
+      // --- START OF FIX: Dynamically build the payload ---
       const payload = {
-        query,
-        diet: diet.length > 0 ? diet : null,
-        cuisine: cuisine || null,
+        query: query,
         max_time: maxTime,
-        top_k: 20,
+        top_k: 20
       };
 
-      const response = await axios.post(
-        "http://127.0.0.1:8000/search",
-        payload
-      );
+      // Only add the 'diet' filter if diets are actually selected
+      if (diet.length > 0) {
+        payload.diet = diet;
+      }
+      
+      // Only add the 'cuisine' filter if a specific cuisine is chosen (i.e., not "")
+      if (cuisine) { 
+        payload.cuisine = cuisine;
+      }
+      // --- END OF FIX ---
+
+
+      // --- REAL API CALL ---
+      const response = await axios.post("http://127.0.0.1:8000/search", payload);
       setResults(response.data.results || []);
+      
     } catch (err) {
       console.error("Search error:", err);
       setResults([]);
@@ -55,11 +65,10 @@ export default function SearchBar({ setResults, loading, setLoading, setHasSearc
         </p>
 
         <form onSubmit={handleSearch} className="max-w-3xl mx-auto space-y-6">
-          
           {/* Main Input */}
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-6 w-6 text-stone-400" />
+              <Search className="h-6 w-6 text-stone-400 group-focus-within:text-orange-500 transition-colors" />
             </div>
             <input
               type="text"
@@ -72,19 +81,17 @@ export default function SearchBar({ setResults, loading, setLoading, setHasSearc
 
           {/* Filters Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
+            
             {/* Cuisine */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">
-                Cuisine
-              </label>
+              <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Cuisine</label>
               <div className="relative">
-                <select
-                  value={cuisine}
+                <select 
+                  value={cuisine} 
                   onChange={(e) => setCuisine(e.target.value)}
-                  className="appearance-none w-full bg-white border border-stone-200 text-stone-700 py-3 px-4 pr-8 rounded-lg focus:border-orange-400"
+                  className="appearance-none w-full bg-white border border-stone-200 text-stone-700 py-3 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400"
                 >
-                  <option value="">All Cuisines</option>
+                  <option value="">All Cuisines</option> 
                   <option value="indian">Indian</option>
                   <option value="italian">Italian</option>
                   <option value="chinese">Chinese</option>
@@ -96,10 +103,10 @@ export default function SearchBar({ setResults, loading, setLoading, setHasSearc
               </div>
             </div>
 
-            {/* Max Time */}
+            {/* Time */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-bold text-stone-400 uppercase tracking-wider">
-                <span>Max Time</span>
+                <label>Max Time</label>
                 <span className="text-orange-600">{maxTime} min</span>
               </div>
               <input
@@ -109,25 +116,23 @@ export default function SearchBar({ setResults, loading, setLoading, setHasSearc
                 step="5"
                 value={maxTime}
                 onChange={(e) => setMaxTime(Number(e.target.value))}
-                className="w-full h-2 bg-stone-200 rounded-lg cursor-pointer accent-orange-500"
+                className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
               />
             </div>
 
             {/* Diet */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">
-                Dietary Needs
-              </label>
+              <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Dietary Needs</label>
               <div className="flex flex-wrap gap-2">
-                {["vegetarian", "vegan", "gluten-free"].map((opt) => (
+                {['vegetarian', 'vegan', 'gluten-free'].map(opt => (
                   <button
                     key={opt}
                     type="button"
                     onClick={() => toggleDiet(opt)}
                     className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
                       diet.includes(opt)
-                        ? "bg-green-100 border-green-200 text-green-800 shadow-sm"
-                        : "bg-white border-stone-200 text-stone-500"
+                        ? 'bg-green-100 border-green-200 text-green-800 font-medium shadow-sm'
+                        : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300'
                     }`}
                   >
                     {opt.charAt(0).toUpperCase() + opt.slice(1)}
@@ -137,14 +142,13 @@ export default function SearchBar({ setResults, loading, setLoading, setHasSearc
             </div>
           </div>
 
-          {/* Submit Button */}
+          {/* Button */}
           <div className="pt-2">
-            <button
+            <button 
               type="submit"
-              className="w-full bg-stone-900 text-white font-medium py-4 rounded-xl hover:bg-orange-600 transition-colors shadow-lg flex justify-center items-center gap-2"
+              className="w-full bg-stone-900 text-white font-medium py-4 rounded-xl hover:bg-orange-600 active:bg-orange-700 transition-colors shadow-lg shadow-stone-300 flex justify-center items-center gap-2"
             >
-              {loading ? <Loader2 className="animate-spin" /> : <Search size={20} />}
-              {loading ? "Curating Recipes..." : "Find Recipes"}
+              Find Recipes
             </button>
           </div>
         </form>

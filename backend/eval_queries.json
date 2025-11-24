@@ -1,0 +1,18 @@
+[
+    {
+        "query": "spinach rice",
+        "relevant_ids": [134657 , 41130, 276790,384769,73291] 
+    },
+    {
+        "query": "chicken curry",
+        "relevant_ids": [273769, 362224, 399471,97647,381849,84375]
+    },
+    {
+        "query": "vegan pasta",
+        "relevant_ids": [490247, 479239]
+    },
+    {
+        "query": "butter chicken",
+        "relevant_ids": [146193, 464814, 30514,86814,175285]
+    }
+]

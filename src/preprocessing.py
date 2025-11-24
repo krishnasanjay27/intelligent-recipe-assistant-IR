@@ -137,8 +137,8 @@ def build_search_text(title, ingredients_tokens, steps_tokens):
 
     # Apply weights
     weighted_title = title_tokens * 2
-    weighted_ing = ingredients_tokens * 3
-    weighted_steps = steps_tokens * 1
+    weighted_ing = ingredients_tokens * 5
+    weighted_steps = steps_tokens * 0.5
 
     # Combine all tokens
     all_tokens = weighted_title + weighted_ing + weighted_steps

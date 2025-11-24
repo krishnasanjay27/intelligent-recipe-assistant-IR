@@ -10,12 +10,17 @@ def filter_by_diet(df, allowed_tags):
 
 def filter_by_cuisine(df, cuisine):
     """
-    Keeps recipes whose tags match the desired cuisine.
-    Example: cuisine="indian"
+    Filters recipes by cuisine tag. Treats common "all"/"any" selections as no filter.
     """
-    if not cuisine:
+    if cuisine is None:
         return df
-    return df[df["tags"].str.contains(cuisine, case=False, na=False)]
+
+    normalized = cuisine.strip().lower()
+    if normalized in {"", "all", "all cuisines", "all cuisine", "any", "any cuisine", "none"}:
+        return df
+
+    return df[df["tags"].str.contains(normalized, case=False, na=False)]
+
 
 
 def filter_by_time(df, max_minutes):
