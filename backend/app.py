@@ -14,6 +14,9 @@ from src.tfidf_index import TFIDFIndex
 from src.bm25_index import BM25Index
 from src.search import HybridSearch
 from src.preprocessing import basic_clean, tokenize, remove_stopwords, lemmatize
+df = None
+search_engine = None
+
 
 app = FastAPI()
 
@@ -29,23 +32,30 @@ app.add_middleware(
 # ---------------------------
 # Load preprocessed dataset
 # ---------------------------
-print("Loading dataset...")
-df = pd.read_csv("../data/preprocessed_60000.csv")
+@app.on_event("startup")
+def startup_event():
+    global df, search_engine
 
-# Convert token columns from string to Python list
-df["ingredients_tokens"] = df["ingredients_tokens"].apply(eval)
-df["steps_tokens"] = df["steps_tokens"].apply(eval)
+    print("Loading dataset...")
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DATA_PATH = os.path.join(BASE_DIR, "..", "data", "preprocessed_60000.csv")
 
-print("Building TF-IDF index...")
-tfidf_index = TFIDFIndex(df["search_text"].tolist())
+    df = pd.read_csv(DATA_PATH)
 
-print("Building BM25 index...")
-bm25_index = BM25Index(df["ingredients_tokens"].tolist())
+    # Convert token columns from string to list
+    df["ingredients_tokens"] = df["ingredients_tokens"].apply(eval)
+    df["steps_tokens"] = df["steps_tokens"].apply(eval)
 
-print("Building Hybrid Search...")
-search_engine = HybridSearch(tfidf_index, bm25_index, df)
+    print("Building TF-IDF index...")
+    tfidf_index = TFIDFIndex(df["search_text"].tolist())
 
-print("Backend ready!")
+    print("Building BM25 index...")
+    bm25_index = BM25Index(df["ingredients_tokens"].tolist())
+
+    print("Building Hybrid Search...")
+    search_engine = HybridSearch(tfidf_index, bm25_index, df)
+
+    print("Backend ready!")
 
 
 # ---------------------------
@@ -64,6 +74,8 @@ class SearchQuery(BaseModel):
 # ---------------------------
 @app.post("/search")
 def search_recipes(data: SearchQuery):
+    if search_engine is None:
+        return {"results": []}
     try:
         cleaned = basic_clean(data.query)
         tokens = tokenize(cleaned)
