@@ -1,8 +1,10 @@
 fastapi
 uvicorn
-pydantic
 pandas
 numpy
 scikit-learn
-spacy
 nltk
+
+# IMPORTANT: compatibility pins
+pydantic<2
+spacy<3.8
