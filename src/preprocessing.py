@@ -3,6 +3,7 @@ import ast
 import pandas as pd
 
 import nltk
+import os
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
@@ -12,10 +13,16 @@ from nltk.stem import WordNetLemmatizer
 # nltk.download("stopwords")
 # nltk.download("wordnet")
 # nltk.download("omw-1.4")
+# Tell NLTK where data is (Render-safe)
+NLTK_DATA_PATH = os.environ.get("NLTK_DATA", "/opt/render/nltk_data")
+nltk.data.path.append(NLTK_DATA_PATH)
 
-stop_words = set(stopwords.words("english"))
+try:
+    stop_words = set(stopwords.words("english"))
+except LookupError:
+    stop_words = set()
+
 lemmatizer = WordNetLemmatizer()
-
 # -------------------------------------------------
 # BASIC CLEANING
 # -------------------------------------------------
