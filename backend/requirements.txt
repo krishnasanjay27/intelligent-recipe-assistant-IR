@@ -4,4 +4,4 @@ pandas
 numpy<2
 scikit-learn
 nltk
-pydantic<2
+pydantic>=2.5,<3
