@@ -14,35 +14,39 @@ from src.tfidf_index import TFIDFIndex
 from src.bm25_index import BM25Index
 from src.search import HybridSearch
 from src.preprocessing import basic_clean, tokenize, remove_stopwords, lemmatize
+
+# ---------------------------
+# Global state (IMPORTANT)
+# ---------------------------
 df = None
 search_engine = None
-
 
 app = FastAPI()
 
 # Enable CORS so React frontend can call FastAPI
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # or ["http://localhost:3000"]
+    allow_origins=["*"],   # Restrict later in prod if needed
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # ---------------------------
-# Load preprocessed dataset
+# Startup: load data & build indices ONCE
 # ---------------------------
 @app.on_event("startup")
 def startup_event():
     global df, search_engine
 
     print("Loading dataset...")
+
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_PATH = os.path.join(BASE_DIR, "..", "data", "preprocessed_60000.csv")
 
     df = pd.read_csv(DATA_PATH)
 
-    # Convert token columns from string to list
+    # Convert token columns from string to Python lists
     df["ingredients_tokens"] = df["ingredients_tokens"].apply(eval)
     df["steps_tokens"] = df["steps_tokens"].apply(eval)
 
@@ -56,7 +60,7 @@ def startup_event():
     search_engine = HybridSearch(tfidf_index, bm25_index, df)
 
     print("Backend ready!")
-
+    
 
 # ---------------------------
 # Request Model
@@ -74,8 +78,10 @@ class SearchQuery(BaseModel):
 # ---------------------------
 @app.post("/search")
 def search_recipes(data: SearchQuery):
+    # Safety guard (should never trigger, but prod-safe)
     if search_engine is None:
         return {"results": []}
+
     try:
         cleaned = basic_clean(data.query)
         tokens = tokenize(cleaned)
@@ -94,9 +100,9 @@ def search_recipes(data: SearchQuery):
         output = []
         for _, row in results.iterrows():
             score = float(row["final_score"])
-            if score != score: # Check for NaN
+            if score != score:  # NaN check
                 score = 0.0
-            
+
             output.append({
                 "name": row["name"],
                 "minutes": int(row["minutes"]),
@@ -108,6 +114,7 @@ def search_recipes(data: SearchQuery):
             })
 
         return {"results": output}
+
     except Exception as e:
         import traceback
         print(f"Error processing request: {e}")
