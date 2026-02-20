@@ -3,6 +3,7 @@ print(">>> app.py loaded")
 import sys
 import os
 import platform
+import threading
 import traceback
 
 import nltk
@@ -28,6 +29,8 @@ from src.preprocessing import basic_clean, tokenize, remove_stopwords, lemmatize
 # ---------------------------
 df = None
 search_engine = None
+init_error = None          # stores error message if startup failed
+init_done = False          # True once background init finishes
 
 
 # ---------------------------
@@ -52,14 +55,14 @@ def _get_nltk_data_dir() -> str:
 
 
 # ---------------------------
-# Startup / shutdown via lifespan
+# Background initialisation (runs in a thread)
 # ---------------------------
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan: initialise everything before the first request."""
-    global df, search_engine
+def _initialize():
+    """Download data, build indices. Runs in a background thread so
+    uvicorn can start accepting connections immediately."""
+    global df, search_engine, init_error, init_done
 
-    print(">>> startup_event entered")
+    print(">>> background init started")
 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -70,7 +73,6 @@ async def lifespan(app: FastAPI):
         os.environ["NLTK_DATA"] = NLTK_DIR
         os.makedirs(NLTK_DIR, exist_ok=True)
 
-        # Make sure the download directory is on the search path
         if NLTK_DIR not in nltk.data.path:
             nltk.data.path.insert(0, NLTK_DIR)
 
@@ -127,17 +129,29 @@ async def lifespan(app: FastAPI):
 
         print("✅ Backend ready!")
 
-    except Exception:
+    except Exception as exc:
         traceback.print_exc()
+        init_error = str(exc)
         print(
             "⚠️  Startup failed — the /search endpoint will return 503 "
             "until the issue is resolved."
         )
+    finally:
+        init_done = True
 
-    # Hand control to the application
-    yield
 
-    # Shutdown (nothing to clean up)
+# ---------------------------
+# Lifespan: kick off background init, then yield immediately
+# ---------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start heavy work in a daemon thread so uvicorn opens the port NOW
+    thread = threading.Thread(target=_initialize, daemon=True)
+    thread.start()
+    print(">>> server is accepting connections (init running in background)")
+
+    yield  # server is live
+
     print(">>> shutdown")
 
 
@@ -161,7 +175,12 @@ app.add_middleware(
 # ---------------------------
 @app.get("/health")
 def health():
-    return {"status": "ok", "search_ready": search_engine is not None}
+    return {
+        "status": "ok",
+        "search_ready": search_engine is not None,
+        "init_done": init_done,
+        "init_error": init_error,
+    }
 
 
 # ---------------------------
@@ -181,9 +200,14 @@ class SearchQuery(BaseModel):
 @app.post("/search")
 def search_recipes(data: SearchQuery):
     if search_engine is None:
+        if not init_done:
+            raise HTTPException(
+                status_code=503,
+                detail="Server is still starting up. Please wait a moment and try again.",
+            )
         raise HTTPException(
             status_code=503,
-            detail="Search engine is not initialized. Check server logs for startup errors.",
+            detail=f"Search engine failed to initialize: {init_error or 'unknown error'}",
         )
 
     cleaned = basic_clean(data.query)
