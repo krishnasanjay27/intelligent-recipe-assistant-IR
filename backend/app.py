@@ -1,3 +1,5 @@
+print(">>> app.py loaded")
+
 import sys
 import os
 
@@ -37,6 +39,8 @@ app.add_middleware(
 # ---------------------------
 @app.on_event("startup")
 def startup_event():
+    print(">>> startup_event entered")
+
     global df, search_engine
 
     print("Loading dataset...")
