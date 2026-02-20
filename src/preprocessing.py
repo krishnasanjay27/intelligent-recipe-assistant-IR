@@ -8,18 +8,17 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
 # -------------------------------------------------
-# NLTK setup (make sure these are downloaded once)
+# NLTK setup – the NLTK_DATA env-var is set by
+# app.py at startup; fall back to default paths.
 # -------------------------------------------------
-# nltk.download("stopwords")
-# nltk.download("wordnet")
-# nltk.download("omw-1.4")
-# Tell NLTK where data is (Render-safe)
-NLTK_DATA_PATH = os.environ.get("NLTK_DATA", "/opt/render/nltk_data")
-nltk.data.path.append(NLTK_DATA_PATH)
+NLTK_DATA_PATH = os.environ.get("NLTK_DATA")
+if NLTK_DATA_PATH and NLTK_DATA_PATH not in nltk.data.path:
+    nltk.data.path.insert(0, NLTK_DATA_PATH)
 
 try:
     stop_words = set(stopwords.words("english"))
 except LookupError:
+    print("WARNING: NLTK stopwords corpus not found – stopword removal disabled.")
     stop_words = set()
 
 lemmatizer = WordNetLemmatizer()
