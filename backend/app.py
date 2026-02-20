@@ -5,6 +5,7 @@ import os
 import platform
 import threading
 import traceback
+import gc
 
 import nltk
 import gdown
@@ -37,19 +38,11 @@ init_done = False          # True once background init finishes
 # Helper: resolve NLTK data directory (platform-aware)
 # ---------------------------
 def _get_nltk_data_dir() -> str:
-    """
-    On Render (Linux), use /opt/render/nltk_data (writable).
-    Locally (Windows/macOS/other), use <project>/nltk_data.
-    The NLTK_DATA env-var wins if already set.
-    """
     env = os.environ.get("NLTK_DATA")
     if env:
         return env
-
     if platform.system() == "Linux":
         return "/opt/render/nltk_data"
-
-    # Local development: store alongside the project
     base = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base, "..", "nltk_data")
 
@@ -58,17 +51,15 @@ def _get_nltk_data_dir() -> str:
 # Background initialisation (runs in a thread)
 # ---------------------------
 def _initialize():
-    """Download data, build indices. Runs in a background thread so
-    uvicorn can start accepting connections immediately."""
     global df, search_engine, init_error, init_done
 
-    print(">>> background init started")
+    print(">>> background init started", flush=True)
 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
     try:
         # ---------- NLTK SETUP ----------
-        print("Setting up NLTK...")
+        print("Setting up NLTK...", flush=True)
         NLTK_DIR = _get_nltk_data_dir()
         os.environ["NLTK_DATA"] = NLTK_DIR
         os.makedirs(NLTK_DIR, exist_ok=True)
@@ -79,21 +70,20 @@ def _initialize():
         for pkg in ["wordnet", "omw-1.4", "stopwords"]:
             try:
                 nltk.data.find(f"corpora/{pkg}")
-                print(f"  NLTK '{pkg}' already present.")
+                print(f"  NLTK '{pkg}' already present.", flush=True)
             except LookupError:
-                print(f"  Downloading NLTK '{pkg}'...")
+                print(f"  Downloading NLTK '{pkg}'...", flush=True)
                 nltk.download(pkg, download_dir=NLTK_DIR)
 
-        print("NLTK ready.")
+        print("NLTK ready.", flush=True)
 
         # ---------- DATASET SETUP ----------
         DATA_DIR = os.path.join(BASE_DIR, "..", "data")
         os.makedirs(DATA_DIR, exist_ok=True)
-
         DATA_PATH = os.path.join(DATA_DIR, "preprocessed_60000.csv")
 
         if not os.path.exists(DATA_PATH):
-            print("Dataset not found. Downloading via gdown...")
+            print("Dataset not found. Downloading via gdown...", flush=True)
             gdown.download(
                 "https://drive.google.com/uc?id=1M74qCt0Kq566XsdwCfboARwEmIJCXrEY",
                 DATA_PATH,
@@ -101,11 +91,12 @@ def _initialize():
             )
             if not os.path.exists(DATA_PATH):
                 raise RuntimeError("gdown finished but dataset file is missing!")
-            print("Dataset downloaded.")
+            print("Dataset downloaded.", flush=True)
         else:
-            print("Dataset already present, skipping download.")
+            print("Dataset already present, skipping download.", flush=True)
 
-        print("Loading dataset...")
+        # ---------- LOAD DATASET (memory-efficient) ----------
+        print("Loading dataset...", flush=True)
         df = pd.read_csv(DATA_PATH)
 
         required_cols = {"ingredients_tokens", "steps_tokens", "search_text"}
@@ -114,27 +105,46 @@ def _initialize():
                 f"Dataset missing columns: {required_cols - set(df.columns)}"
             )
 
+        # Parse token columns — these are stored as string repr of lists
+        print("Parsing token columns...", flush=True)
         df["ingredients_tokens"] = df["ingredients_tokens"].apply(eval)
         df["steps_tokens"] = df["steps_tokens"].apply(eval)
 
-        # ---------- BUILD INDICES ----------
-        print("Building TF-IDF index...")
-        tfidf_index = TFIDFIndex(df["search_text"].tolist())
+        # ---------- BUILD TF-IDF INDEX ----------
+        print("Building TF-IDF index...", flush=True)
+        search_texts = df["search_text"].tolist()
+        tfidf_index = TFIDFIndex(search_texts)
+        del search_texts
+        gc.collect()
 
-        print("Building BM25 index...")
-        bm25_index = BM25Index(df["ingredients_tokens"].tolist())
+        # ---------- BUILD BM25 INDEX ----------
+        print("Building BM25 index...", flush=True)
+        ingredient_tokens = df["ingredients_tokens"].tolist()
+        bm25_index = BM25Index(ingredient_tokens)
+        del ingredient_tokens
+        gc.collect()
 
-        print("Building Hybrid Search...")
+        # Free raw documents stored inside BM25 (they are duplicates)
+        bm25_index.free_raw_documents()
+        gc.collect()
+
+        # ---------- BUILD HYBRID SEARCH ----------
+        print("Building Hybrid Search...", flush=True)
         search_engine = HybridSearch(tfidf_index, bm25_index, df)
 
-        print("✅ Backend ready!")
+        # Drop heavy token columns from df — they're already inside the indices
+        df = df.drop(columns=["ingredients_tokens", "steps_tokens", "search_text"])
+        gc.collect()
+
+        print("✅ Backend ready!", flush=True)
 
     except Exception as exc:
         traceback.print_exc()
         init_error = str(exc)
         print(
             "⚠️  Startup failed — the /search endpoint will return 503 "
-            "until the issue is resolved."
+            "until the issue is resolved.",
+            flush=True,
         )
     finally:
         init_done = True
@@ -145,14 +155,11 @@ def _initialize():
 # ---------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Start heavy work in a daemon thread so uvicorn opens the port NOW
     thread = threading.Thread(target=_initialize, daemon=True)
     thread.start()
-    print(">>> server is accepting connections (init running in background)")
-
-    yield  # server is live
-
-    print(">>> shutdown")
+    print(">>> server is accepting connections (init running in background)", flush=True)
+    yield
+    print(">>> shutdown", flush=True)
 
 
 # ---------------------------
@@ -160,7 +167,6 @@ async def lifespan(app: FastAPI):
 # ---------------------------
 app = FastAPI(lifespan=lifespan)
 
-# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -217,7 +223,7 @@ def search_recipes(data: SearchQuery):
     try:
         query_tokens = lemmatize(tokens)
     except Exception:
-        query_tokens = tokens  # fallback
+        query_tokens = tokens
 
     results = search_engine.search(
         query=data.query,
@@ -231,7 +237,7 @@ def search_recipes(data: SearchQuery):
     output = []
     for _, row in results.iterrows():
         score = float(row["final_score"])
-        if score != score:  # NaN check
+        if score != score:
             score = 0.0
 
         output.append(

@@ -31,13 +31,18 @@ class BM25Index:
             self.idf[term] = math.log(1 + (self.N - freq + 0.5) / (freq + 0.5))
 
 
+    def free_raw_documents(self):
+        """Drop the raw token lists to reclaim memory.
+        Call this AFTER construction if you no longer need them."""
+        self.documents = None
+
     def search(self, query_tokens, top_k=10):
         """
         query_tokens: list of tokens
         """
         scores = []
 
-        for i, doc in enumerate(self.documents):
+        for i in range(self.N):
             score = 0
             doc_len = self.doc_lengths[i]
             tf = self.term_freqs[i]
