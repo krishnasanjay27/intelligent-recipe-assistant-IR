@@ -68,7 +68,10 @@ def lemmatize(tokens):
     """
     Lemmatize tokens using NLTK WordNet lemmatizer.
     """
-    return [lemmatizer.lemmatize(t) for t in tokens]
+    try:
+        return [lemmatizer.lemmatize(t) for t in tokens]
+    except LookupError:
+        return tokens
 
 
 # -------------------------------------------------
